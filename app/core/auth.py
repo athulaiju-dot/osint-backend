@@ -1,8 +1,18 @@
 import os
-from fastapi import Header, HTTPException
+from fastapi import HTTPException, Security
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 
 API_TOKEN = os.getenv("API_TOKEN")
 
-def verify_token(authorization: str = Header(...)):
-    if authorization != f"Bearer {API_TOKEN}":
-        raise HTTPException(status_code=401, detail="Unauthorized")
+security = HTTPBearer(auto_error=True)
+
+def verify_token(
+    credentials: HTTPAuthorizationCredentials = Security(security)
+):
+    if credentials.scheme.lower() != "bearer":
+        raise HTTPException(status_code=401, detail="Invalid auth scheme")
+
+    if credentials.credentials != API_TOKEN:
+        raise HTTPException(status_code=401, detail="Invalid token")
+
+    return credentials.credentials
