@@ -5,39 +5,30 @@ from app.core.normalizer import normalize
 def run(data: dict):
     phone_raw = data.get("phone")
     if not phone_raw:
-        return normalize(
-            "phone",
-            {"error": "phone_missing"},
-            risk_score=100
-        )
+        return normalize("phone", {"error": "phone_missing"}, risk_score=100)
 
+    # Force India as default region if no country code
     try:
-        phone = phonenumbers.parse(phone_raw, None)
+        if phone_raw.startswith("+"):
+            phone = phonenumbers.parse(phone_raw, None)
+        else:
+            phone = phonenumbers.parse(phone_raw, "IN")
     except Exception:
-        return normalize(
-            "phone",
-            {"error": "invalid_format"},
-            risk_score=90
-        )
+        return normalize("phone", {"error": "invalid_format"}, risk_score=90)
 
     if not phonenumbers.is_valid_number(phone):
-        return normalize(
-            "phone",
-            {"error": "invalid_number"},
-            risk_score=80
-        )
+        return normalize("phone", {"error": "invalid_number"}, risk_score=80)
 
-    # Extract intelligence
     country = geocoder.country_name_for_number(phone, "en")
     region = geocoder.description_for_number(phone, "en")
-    carrier_name = carrier.name_for_number(phone, "en")
+    carrier_name = carrier.name_for_number(phone, "en") or "unknown"
     num_type = number_type(phone)
 
     # Risk scoring
     risk = 0
-    if carrier_name == "":
-        risk += 30
-    if num_type in [phonenumbers.PhoneNumberType.VOIP]:
+    if carrier_name == "unknown":
+        risk += 10
+    if num_type == phonenumbers.PhoneNumberType.VOIP:
         risk += 40
 
     raw = {
@@ -48,9 +39,9 @@ def run(data: dict):
         "national_format": phonenumbers.format_number(
             phone, phonenumbers.PhoneNumberFormat.NATIONAL
         ),
-        "country": country,
-        "region": region,
-        "carrier": carrier_name or "unknown",
+        "country": country or "India",
+        "region": region or "India",
+        "carrier": carrier_name,
         "line_type": str(num_type).replace("PhoneNumberType.", "").lower()
     }
 
