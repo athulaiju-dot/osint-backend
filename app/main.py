@@ -1,4 +1,13 @@
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # allow all for now
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 from app.api import image, phone, ip, username
 
 app = FastAPI(title="Advanced OSINT Backend")
@@ -11,3 +20,4 @@ app.include_router(username.router, prefix="/osint/username")
 @app.get("/health")
 def health():
     return {"status": "online"}
+
